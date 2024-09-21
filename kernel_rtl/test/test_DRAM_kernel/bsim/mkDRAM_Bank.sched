@@ -1,0 +1,87 @@
+=== Generated schedule for mkDRAM_Bank ===
+
+Method schedule
+---------------
+Method: put_bank_cmd
+Ready signal: cmdQ.i_notFull && addrQ.i_notFull
+Conflict-free: put_bank_data,
+	       data_response_ready,
+	       get_data_response,
+	       get_active_row
+Conflicts: put_bank_cmd
+ 
+Method: put_bank_data
+Ready signal: dataQ.i_notFull
+Conflict-free: put_bank_cmd,
+	       data_response_ready,
+	       get_data_response,
+	       get_active_row
+Conflicts: put_bank_data
+ 
+Method: data_response_ready
+Ready signal: True
+Conflict-free: put_bank_cmd,
+	       put_bank_data,
+	       data_response_ready,
+	       get_active_row
+Sequenced before: get_data_response
+ 
+Method: get_data_response
+Ready signal: outputDataBuff.i_notEmpty
+Conflict-free: put_bank_cmd, put_bank_data, get_active_row
+Sequenced after: data_response_ready
+Conflicts: get_data_response
+ 
+Method: get_active_row
+Ready signal: True
+Conflict-free: put_bank_cmd,
+	       put_bank_data,
+	       data_response_ready,
+	       get_data_response,
+	       get_active_row
+ 
+Rule schedule
+-------------
+Rule: fetch
+Predicate: cmdQ.i_notEmpty && addrQ.i_notEmpty &&
+	   cmdQ.notEmpty && addrQ.notEmpty && (stallCounter == 14'd0)
+Blocking rules: (none)
+ 
+Rule: process_ACT
+Predicate: currCommand == 4'd0
+Blocking rules: fetch
+ 
+Rule: process_PRE
+Predicate: currCommand == 4'd10
+Blocking rules: fetch
+ 
+Rule: process_RD
+Predicate: currCommand == 4'd13
+Blocking rules: fetch
+ 
+Rule: process_WR
+Predicate: currCommand == 4'd12
+Blocking rules: fetch
+ 
+Rule: process_NOP
+Predicate: ((currState == 3'd1) ||
+	    ((currState == 3'd3)
+	     ? (! (burstCounter < 14'd4)) || outputDataBuff.i_notFull
+	     : ((! (currState == 3'd4)) ||
+		(! (burstCounter < 14'd4)) || dataQ.i_notEmpty))) &&
+	   (currCommand == 4'd15)
+Blocking rules: fetch
+ 
+Logical execution order: put_bank_data,
+			 data_response_ready,
+			 get_data_response,
+			 get_active_row,
+			 fetch,
+			 put_bank_cmd,
+			 process_ACT,
+			 process_PRE,
+			 process_RD,
+			 process_WR,
+			 process_NOP
+
+===========================================

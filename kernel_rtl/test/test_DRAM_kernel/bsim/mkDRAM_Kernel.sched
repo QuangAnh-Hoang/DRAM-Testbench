@@ -1,0 +1,189 @@
+=== Generated schedule for mkDRAM_Kernel ===
+
+Method schedule
+---------------
+Method: put_mem_control
+Ready signal: controlQ.i_notFull
+Conflict-free: put_mem_data, get_data_response
+Conflicts: put_mem_control
+ 
+Method: put_mem_data
+Ready signal: dataInQ.i_notFull
+Conflict-free: put_mem_control, get_data_response
+Conflicts: put_mem_data
+ 
+Method: get_data_response
+Ready signal: dataOutQ.i_notEmpty
+Conflict-free: put_mem_control, put_mem_data
+Conflicts: get_data_response
+ 
+Rule schedule
+-------------
+Rule: decode
+Predicate: controlQ.i_notEmpty &&
+	   ((! ((PrimArrayDynSelect (PrimBuildArray dram_banks_stall_cnt_0
+						    dram_banks_stall_cnt_1
+						    dram_banks_stall_cnt_2
+						    dram_banks_stall_cnt_3
+						    dram_banks_stall_cnt_4
+						    dram_banks_stall_cnt_5
+						    dram_banks_stall_cnt_6
+						    dram_banks_stall_cnt_7
+						    dram_banks_stall_cnt_8
+						    dram_banks_stall_cnt_9
+						    dram_banks_stall_cnt_10
+						    dram_banks_stall_cnt_11
+						    dram_banks_stall_cnt_12
+						    dram_banks_stall_cnt_13
+						    dram_banks_stall_cnt_14
+						    dram_banks_stall_cnt_15)
+				    controlQ.first[7:4]) ==
+		8'd0)) ||
+	    (((controlQ.first[22:21] == 2'b0) ||
+	      (controlQ.first[22:18] == 5'b1010))
+	     ? case controlQ.first[7:4] of
+	       4'd0 -> dram_banks_0.RDY_put_bank_cmd
+	       4'd1 -> dram_banks_1.RDY_put_bank_cmd
+	       4'd2 -> dram_banks_2.RDY_put_bank_cmd
+	       4'd3 -> dram_banks_3.RDY_put_bank_cmd
+	       4'd4 -> dram_banks_4.RDY_put_bank_cmd
+	       4'd5 -> dram_banks_5.RDY_put_bank_cmd
+	       4'd6 -> dram_banks_6.RDY_put_bank_cmd
+	       4'd7 -> dram_banks_7.RDY_put_bank_cmd
+	       4'd8 -> dram_banks_8.RDY_put_bank_cmd
+	       4'd9 -> dram_banks_9.RDY_put_bank_cmd
+	       4'd10 -> dram_banks_10.RDY_put_bank_cmd
+	       4'd11 -> dram_banks_11.RDY_put_bank_cmd
+	       4'd12 -> dram_banks_12.RDY_put_bank_cmd
+	       4'd13 -> dram_banks_13.RDY_put_bank_cmd
+	       4'd14 -> dram_banks_14.RDY_put_bank_cmd
+	       4'd15 -> dram_banks_15.RDY_put_bank_cmd
+	       _ -> 1'd1
+	     : ((controlQ.first[22:18] == 5'b1101)
+		? dram_bank_read_queue.i_notFull &&
+		  case controlQ.first[7:4] of
+		  4'd0 -> dram_banks_0.RDY_put_bank_cmd
+		  4'd1 -> dram_banks_1.RDY_put_bank_cmd
+		  4'd2 -> dram_banks_2.RDY_put_bank_cmd
+		  4'd3 -> dram_banks_3.RDY_put_bank_cmd
+		  4'd4 -> dram_banks_4.RDY_put_bank_cmd
+		  4'd5 -> dram_banks_5.RDY_put_bank_cmd
+		  4'd6 -> dram_banks_6.RDY_put_bank_cmd
+		  4'd7 -> dram_banks_7.RDY_put_bank_cmd
+		  4'd8 -> dram_banks_8.RDY_put_bank_cmd
+		  4'd9 -> dram_banks_9.RDY_put_bank_cmd
+		  4'd10 -> dram_banks_10.RDY_put_bank_cmd
+		  4'd11 -> dram_banks_11.RDY_put_bank_cmd
+		  4'd12 -> dram_banks_12.RDY_put_bank_cmd
+		  4'd13 -> dram_banks_13.RDY_put_bank_cmd
+		  4'd14 -> dram_banks_14.RDY_put_bank_cmd
+		  4'd15 -> dram_banks_15.RDY_put_bank_cmd
+		  _ -> 1'd1
+		: ((! (controlQ.first[22:18] == 5'b1100)) ||
+		   (dram_bank_write_queue.i_notFull &&
+		    case controlQ.first[7:4] of
+		    4'd0 -> dram_banks_0.RDY_put_bank_cmd
+		    4'd1 -> dram_banks_1.RDY_put_bank_cmd
+		    4'd2 -> dram_banks_2.RDY_put_bank_cmd
+		    4'd3 -> dram_banks_3.RDY_put_bank_cmd
+		    4'd4 -> dram_banks_4.RDY_put_bank_cmd
+		    4'd5 -> dram_banks_5.RDY_put_bank_cmd
+		    4'd6 -> dram_banks_6.RDY_put_bank_cmd
+		    4'd7 -> dram_banks_7.RDY_put_bank_cmd
+		    4'd8 -> dram_banks_8.RDY_put_bank_cmd
+		    4'd9 -> dram_banks_9.RDY_put_bank_cmd
+		    4'd10 -> dram_banks_10.RDY_put_bank_cmd
+		    4'd11 -> dram_banks_11.RDY_put_bank_cmd
+		    4'd12 -> dram_banks_12.RDY_put_bank_cmd
+		    4'd13 -> dram_banks_13.RDY_put_bank_cmd
+		    4'd14 -> dram_banks_14.RDY_put_bank_cmd
+		    4'd15 -> dram_banks_15.RDY_put_bank_cmd
+		    _ -> 1'd1))))) &&
+	   controlQ.notEmpty
+Blocking rules: (none)
+ 
+Rule: setBankToRead
+Predicate: dram_bank_read_queue.i_notEmpty &&
+	   dram_bank_read_queue.notEmpty &&
+	   (dram_bank_read_burst_counter == 8'd0)
+Blocking rules: (none)
+ 
+Rule: readDataFromBank
+Predicate: ((! (PrimArrayDynSelect (PrimBuildArray dram_banks_0.data_response_ready
+						   dram_banks_1.data_response_ready
+						   dram_banks_2.data_response_ready
+						   dram_banks_3.data_response_ready
+						   dram_banks_4.data_response_ready
+						   dram_banks_5.data_response_ready
+						   dram_banks_6.data_response_ready
+						   dram_banks_7.data_response_ready
+						   dram_banks_8.data_response_ready
+						   dram_banks_9.data_response_ready
+						   dram_banks_10.data_response_ready
+						   dram_banks_11.data_response_ready
+						   dram_banks_12.data_response_ready
+						   dram_banks_13.data_response_ready
+						   dram_banks_14.data_response_ready
+						   dram_banks_15.data_response_ready)
+				   bank_to_read)) ||
+	    (dataOutQ.i_notFull &&
+	     case bank_to_read of
+	     4'd0 -> dram_banks_0.RDY_get_data_response
+	     4'd1 -> dram_banks_1.RDY_get_data_response
+	     4'd2 -> dram_banks_2.RDY_get_data_response
+	     4'd3 -> dram_banks_3.RDY_get_data_response
+	     4'd4 -> dram_banks_4.RDY_get_data_response
+	     4'd5 -> dram_banks_5.RDY_get_data_response
+	     4'd6 -> dram_banks_6.RDY_get_data_response
+	     4'd7 -> dram_banks_7.RDY_get_data_response
+	     4'd8 -> dram_banks_8.RDY_get_data_response
+	     4'd9 -> dram_banks_9.RDY_get_data_response
+	     4'd10 -> dram_banks_10.RDY_get_data_response
+	     4'd11 -> dram_banks_11.RDY_get_data_response
+	     4'd12 -> dram_banks_12.RDY_get_data_response
+	     4'd13 -> dram_banks_13.RDY_get_data_response
+	     4'd14 -> dram_banks_14.RDY_get_data_response
+	     4'd15 -> dram_banks_15.RDY_get_data_response
+	     _ -> 1'd1)) &&
+	   (! (dram_bank_read_burst_counter == 8'd0))
+Blocking rules: (none)
+ 
+Rule: setBankToWrite
+Predicate: dram_bank_write_queue.i_notEmpty &&
+	   dram_bank_write_queue.notEmpty &&
+	   (dram_bank_write_burst_counter == 8'd0)
+Blocking rules: (none)
+ 
+Rule: writeDataToBank
+Predicate: dataInQ.i_notEmpty &&
+	   case bank_to_write of
+	   4'd0 -> dram_banks_0.RDY_put_bank_data
+	   4'd1 -> dram_banks_1.RDY_put_bank_data
+	   4'd2 -> dram_banks_2.RDY_put_bank_data
+	   4'd3 -> dram_banks_3.RDY_put_bank_data
+	   4'd4 -> dram_banks_4.RDY_put_bank_data
+	   4'd5 -> dram_banks_5.RDY_put_bank_data
+	   4'd6 -> dram_banks_6.RDY_put_bank_data
+	   4'd7 -> dram_banks_7.RDY_put_bank_data
+	   4'd8 -> dram_banks_8.RDY_put_bank_data
+	   4'd9 -> dram_banks_9.RDY_put_bank_data
+	   4'd10 -> dram_banks_10.RDY_put_bank_data
+	   4'd11 -> dram_banks_11.RDY_put_bank_data
+	   4'd12 -> dram_banks_12.RDY_put_bank_data
+	   4'd13 -> dram_banks_13.RDY_put_bank_data
+	   4'd14 -> dram_banks_14.RDY_put_bank_data
+	   4'd15 -> dram_banks_15.RDY_put_bank_data
+	   _ -> 1'd1 &&
+	   (! (dram_bank_write_burst_counter == 8'd0))
+Blocking rules: (none)
+ 
+Logical execution order: put_mem_data,
+			 get_data_response,
+			 setBankToRead,
+			 readDataFromBank,
+			 setBankToWrite,
+			 decode,
+			 put_mem_control,
+			 writeDataToBank
+
+=============================================

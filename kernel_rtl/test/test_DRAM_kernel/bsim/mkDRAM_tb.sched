@@ -1,0 +1,254 @@
+=== Generated schedule for mkDRAM_tb ===
+
+Rule schedule
+-------------
+Rule: start_reg__dreg_update
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: state_handle_abort
+Predicate: abort.whas && abort.wget &&
+	   ((! start_wire.whas) || (! start_wire.wget))
+Blocking rules: (none)
+ 
+Rule: state_fired__dreg_update
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: state_every
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: restart
+Predicate: start_reg_1 && (! state_fired) &&
+	   ((! abort.whas) || (! abort.wget))
+Blocking rules: (none)
+ 
+Rule: action_l20c9
+Predicate: dut.RDY_put_mem_control &&
+	   start_wire.whas && start_wire.wget &&
+	   ((abort.whas && abort.wget) || (state_mkFSMstate.read == 5'd0) ||
+	    (state_mkFSMstate.read == 5'd16))
+Blocking rules: (none)
+ 
+Rule: action_l28c9
+Predicate: dut.RDY_put_mem_control &&
+	   ((! abort.whas) || (! abort.wget)) &&
+	   (state_mkFSMstate.read == 5'd1)
+Blocking rules: (none)
+ 
+Rule: action_l35c9
+Predicate: dut.RDY_get_data_response &&
+	   ((! abort.whas) || (! abort.wget)) &&
+	   (state_mkFSMstate.read == 5'd2)
+Blocking rules: (none)
+ 
+Rule: action_l39c9
+Predicate: dut.RDY_get_data_response &&
+	   ((! abort.whas) || (! abort.wget)) &&
+	   (state_mkFSMstate.read == 5'd3)
+Blocking rules: (none)
+ 
+Rule: action_l43c9
+Predicate: dut.RDY_get_data_response &&
+	   ((! abort.whas) || (! abort.wget)) &&
+	   (state_mkFSMstate.read == 5'd4)
+Blocking rules: (none)
+ 
+Rule: action_l47c9
+Predicate: dut.RDY_get_data_response &&
+	   ((! abort.whas) || (! abort.wget)) &&
+	   (state_mkFSMstate.read == 5'd5)
+Blocking rules: (none)
+ 
+Rule: action_l51c9
+Predicate: dut.RDY_put_mem_control &&
+	   ((! abort.whas) || (! abort.wget)) &&
+	   (state_mkFSMstate.read == 5'd6)
+Blocking rules: (none)
+ 
+Rule: action_l58c9
+Predicate: dut.RDY_put_mem_data &&
+	   ((! abort.whas) || (! abort.wget)) &&
+	   (state_mkFSMstate.read == 5'd7)
+Blocking rules: (none)
+ 
+Rule: action_l61c9
+Predicate: dut.RDY_put_mem_data &&
+	   ((! abort.whas) || (! abort.wget)) &&
+	   (state_mkFSMstate.read == 5'd8)
+Blocking rules: (none)
+ 
+Rule: action_l64c9
+Predicate: dut.RDY_put_mem_data &&
+	   ((! abort.whas) || (! abort.wget)) &&
+	   (state_mkFSMstate.read == 5'd9)
+Blocking rules: (none)
+ 
+Rule: action_l67c9
+Predicate: dut.RDY_put_mem_data &&
+	   ((! abort.whas) || (! abort.wget)) &&
+	   (state_mkFSMstate.read == 5'd10)
+Blocking rules: (none)
+ 
+Rule: action_l70c9
+Predicate: dut.RDY_put_mem_control &&
+	   ((! abort.whas) || (! abort.wget)) &&
+	   (state_mkFSMstate.read == 5'd11)
+Blocking rules: (none)
+ 
+Rule: action_l77c9
+Predicate: dut.RDY_get_data_response &&
+	   ((! abort.whas) || (! abort.wget)) &&
+	   (state_mkFSMstate.read == 5'd12)
+Blocking rules: (none)
+ 
+Rule: action_l81c9
+Predicate: dut.RDY_get_data_response &&
+	   ((! abort.whas) || (! abort.wget)) &&
+	   (state_mkFSMstate.read == 5'd13)
+Blocking rules: (none)
+ 
+Rule: action_l85c9
+Predicate: dut.RDY_get_data_response &&
+	   ((! abort.whas) || (! abort.wget)) &&
+	   (state_mkFSMstate.read == 5'd14)
+Blocking rules: (none)
+ 
+Rule: action_l89c9
+Predicate: dut.RDY_get_data_response &&
+	   ((! abort.whas) || (! abort.wget)) &&
+	   (state_mkFSMstate.read == 5'd15)
+Blocking rules: (none)
+ 
+Rule: idle_l19c6
+Predicate: ((! start_wire.whas) || (! start_wire.wget)) &&
+	   ((! abort.whas) || (! abort.wget)) &&
+	   (state_mkFSMstate.read == 5'd16)
+Blocking rules: (none)
+ 
+Rule: fsm_start
+Predicate: ((abort.whas && abort.wget) || (state_mkFSMstate.read == 5'd0) ||
+	    (state_mkFSMstate.read == 5'd16)) &&
+	   ((! start_reg_1) || state_fired) &&
+	   start_reg
+Blocking rules: (none)
+ 
+Rule: auto_start
+Predicate: ((abort.whas && abort.wget) || (state_mkFSMstate.read == 5'd0) ||
+	    (state_mkFSMstate.read == 5'd16)) &&
+	   ((! start_reg_1) || state_fired) &&
+	   (! start_reg) &&
+	   (! running)
+Blocking rules: (none)
+ 
+Rule: auto_finish
+Predicate: running &&
+	   ((abort.whas && abort.wget) || (state_mkFSMstate.read == 5'd0) ||
+	    (state_mkFSMstate.read == 5'd16)) &&
+	   ((! start_reg_1) || state_fired) &&
+	   (! start_reg)
+Blocking rules: (none)
+ 
+Rule: __me_check_5
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: __me_check_6
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: __me_check_7
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: __me_check_8
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: __me_check_9
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: __me_check_10
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: __me_check_11
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: __me_check_12
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: __me_check_13
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: __me_check_14
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: __me_check_15
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: __me_check_16
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: __me_check_17
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: __me_check_18
+Predicate: True
+Blocking rules: (none)
+ 
+Rule: __me_check_19
+Predicate: True
+Blocking rules: (none)
+ 
+Logical execution order: restart,
+			 action_l28c9,
+			 action_l35c9,
+			 action_l39c9,
+			 action_l43c9,
+			 action_l47c9,
+			 action_l51c9,
+			 action_l58c9,
+			 action_l61c9,
+			 action_l64c9,
+			 action_l67c9,
+			 action_l70c9,
+			 action_l77c9,
+			 action_l81c9,
+			 action_l85c9,
+			 action_l89c9,
+			 __me_check_6,
+			 __me_check_7,
+			 __me_check_8,
+			 __me_check_9,
+			 __me_check_10,
+			 __me_check_12,
+			 __me_check_11,
+			 __me_check_13,
+			 __me_check_14,
+			 __me_check_15,
+			 __me_check_16,
+			 __me_check_17,
+			 __me_check_18,
+			 __me_check_19,
+			 fsm_start,
+			 action_l20c9,
+			 __me_check_5,
+			 idle_l19c6,
+			 auto_start,
+			 auto_finish,
+			 start_reg__dreg_update,
+			 state_handle_abort,
+			 state_every,
+			 state_fired__dreg_update
+
+=========================================
