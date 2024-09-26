@@ -44,6 +44,7 @@ module krnl (KernelTopIfc);
 	Reg#(Bool) started <- mkReg(False);
 
 	KernelMainIfc kernelMain <- mkKernelMain;
+	
 	rule checkStart (!started);
 		if ( axi4control.ap_start ) begin
 			$display("[%d] checkStart: %x, %d, %d, %d, %x, %x, %x", cycleCounter, axi4control.ap_start, axi4control.scalar00, axi4control.scalar01, axi4control.scalar02, axi4control.inst_q_addr, axi4control.data_in_q_addr, axi4control.data_out_q_addr);
@@ -52,7 +53,6 @@ module krnl (KernelTopIfc);
 		end
 	endrule
 	rule checkDone ( started );
-		// $display("[%d] checkStart: %x, %d, %d, %d, %x, %x, %x", cycleCounter, axi4control.ap_start, axi4control.scalar00, axi4control.scalar01, axi4control.scalar02, axi4control.inst_q_addr, axi4control.data_in_q_addr, axi4control.data_out_q_addr);
 		Bool done = kernelMain.done;
 		if ( done ) axi4control.ap_done();
 	endrule

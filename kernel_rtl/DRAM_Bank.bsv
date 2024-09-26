@@ -5,7 +5,7 @@ import Vector::*;
 
 // Bank config parameters
 typedef 10 ROW_ADDR_WIDTH;
-typedef 4  COL_ADDR_WIDTH;
+typedef 5  COL_ADDR_WIDTH;
 typedef 2 BANK_ADDR_WIDTH;
 
 typedef ROW_ADDR_WIDTH ADDR_WIDTH;
@@ -63,7 +63,7 @@ module mkDRAM_Bank(DRAM_Bank_Ifc);
 
     Reg#(Bit#(ROW_DATA_WIDTH)) rowBuffer <- mkReg(0); 
 
-    FIFOF#(Bit#(WORD_SIZE)) outputDataBuff <- mkSizedFIFOF(valueof(BURST_LENGTH));
+    FIFOF#(Bit#(WORD_SIZE)) outputDataBuff <- mkSizedFIFOF(valueof(BURST_LENGTH)*4);
 
     Reg#(BankState) currState <- mkReg(Idle);
     Reg#(BankCMD) currCommand <- mkReg(NOP);
@@ -73,59 +73,68 @@ module mkDRAM_Bank(DRAM_Bank_Ifc);
     Reg#(Bit#(ADDR_WIDTH)) burstCounter <- mkReg(0);
     Reg#(Bit#(ROW_DATA_WIDTH)) rowMask <- mkReg(0);
 
+    Reg#(Bit#(32)) cycleCounter <- mkReg(0);
+
+    rule incCycle;
+        cycleCounter <= cycleCounter + 1;
+    endrule
+
     //////////////////////////////////////////////////////////////////////////
 
     // Make sure each command corresponds with one address in queue
-    rule fetch (cmdQ.notEmpty() && addrQ.notEmpty() && (stallCounter == 0));
-        cmdQ.deq();
-        addrQ.deq();
+    rule fetch (stallCounter == 0);
+        if (cmdQ.notEmpty() && addrQ.notEmpty()) begin
+            cmdQ.deq();
+            addrQ.deq();
 
-        currCommand <= cmdQ.first;
-        currAddress <= addrQ.first;
+            let cmd = cmdQ.first;
+            let addr = addrQ.first;
+
+            $display("\n\t\t\t\t\t[%d] fetch - cmdQ.first() = %x, addrQ.first() = %x\n", cycleCounter, cmdQ.first, addrQ.first);
+
+            case (cmd) matches
+                ACT:
+                    begin
+                        stallCounter <= 1;
+
+                        currState <= Activating;
+                        activeRowAddr <= addr;
+                        mem_cells.request(addr, 0, False);
+                    end
+                PRE:
+                    begin
+                        stallCounter <= 1;
+
+                        currState <= Precharging;
+                        mem_cells.request(activeRowAddr, rowBuffer, True);
+                    end
+                RD:
+                    begin
+                        stallCounter <= fromInteger(valueof(BURST_LENGTH));
+
+                        currState <= Reading;
+                        burstCounter <= 0;
+                        currColAddr <= addr;
+                    end
+                WR:
+                    begin
+                        stallCounter <= fromInteger(valueof(BURST_LENGTH));
+
+                        currState <= Writing;
+                        burstCounter <= 0;
+                        currColAddr <= addr;
+
+                        Bit#(WORD_SIZE) m = -1;
+                        Bit#(ROW_DATA_WIDTH) d = zeroExtend(m);
+                        let s = addr << log2(valueof(WORD_SIZE));
+                        rowMask <= d << s;
+                    end
+            endcase
+        end
     endrule
 
-    rule process_ACT (currCommand == ACT);
-        stallCounter <= 1;
-        currCommand <= NOP;
-
-        currState <= Activating;
-        activeRowAddr <= currAddress;
-        mem_cells.request(currAddress, 0, False);
-    endrule
-
-    rule process_PRE (currCommand == PRE);
-        stallCounter <= 1;
-        currCommand <= NOP;
-
-        currState <= Precharging;
-        mem_cells.request(activeRowAddr, rowBuffer, True);
-    endrule
-
-    rule process_RD (currCommand == RD);
-        stallCounter <= fromInteger(valueof(BURST_LENGTH));
-        currCommand <= NOP;
-
-        currState <= Reading;
-        burstCounter <= 0;
-        currColAddr <= currAddress;
-    endrule
-
-    rule process_WR (currCommand == WR);
-        stallCounter <= fromInteger(valueof(BURST_LENGTH));
-        currCommand <= NOP;
-
-        currState <= Writing;
-        burstCounter <= 0;
-        currColAddr <= currAddress;
-
-        Bit#(WORD_SIZE) m = -1;
-        Bit#(ROW_DATA_WIDTH) d = zeroExtend(m);
-        let s = currAddress << log2(valueof(WORD_SIZE));
-        rowMask <= d << s;
-    endrule
-
-    rule process_NOP ((currCommand == NOP));
-        if (stallCounter > 0) stallCounter <= stallCounter - 1;
+    rule process_NOP (stallCounter > 0);
+        stallCounter <= stallCounter - 1;
 
         case (currState) matches
             Activating: 
@@ -133,6 +142,8 @@ module mkDRAM_Bank(DRAM_Bank_Ifc);
                     let d = mem_cells.read_response;
                     rowBuffer <= d;
                     currState <= BankActive;
+
+                    $display("\n\t\t\t\t\t[%d] rowBuffer <= %x\n", cycleCounter, d);
                 end
 
             Reading:
@@ -143,6 +154,7 @@ module mkDRAM_Bank(DRAM_Bank_Ifc);
                         Bit#(WORD_SIZE) d = rowBuffer[offset + fromInteger(valueof(WORD_SIZE)) - 1 : offset];
                         outputDataBuff.enq(d);
                         burstCounter <= burstCounter + 1;
+                        $display("\n\t\t\t\t\t[%d] process_NOP [%d / %d]: outputDataBuff.enq(%x)\nrowBuffer @ %d = %x\n", cycleCounter, burstCounter, valueof(BURST_LENGTH), d, offset, rowBuffer);
                     end
                 end
 

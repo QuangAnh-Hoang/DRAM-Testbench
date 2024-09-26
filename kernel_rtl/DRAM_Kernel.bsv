@@ -12,6 +12,7 @@ interface DRAM_Kernel_Ifc;
     method Action put_mem_control(Bit#(CTRL_WIDTH) control);
     method Action put_mem_data(Bit#(WORD_SIZE) data);
     method Bool data_response_ready;
+    method Bool data_queue_full;
     method ActionValue#(Bit#(WORD_SIZE)) get_data_response;
 endinterface
 
@@ -94,12 +95,14 @@ module mkDRAM_Kernel(DRAM_Kernel_Ifc);
     endrule
 
     rule readDataFromBank (dram_bank_read_burst_counter > 0);
+        // $display("\t\t\t\treadDataFromBank - dram_banks[%d].data_response_ready() = %d", bank_to_read, dram_banks[bank_to_read].data_response_ready());
+
         if (dram_banks[bank_to_read].data_response_ready()) begin
             let d <- dram_banks[bank_to_read].get_data_response;
             dataOutQ.enq(d);
             dram_bank_read_burst_counter <= dram_bank_read_burst_counter - 1;
 
-            $display("\t\t\treadDataFromBank: %x", d);
+            $display("\t\t\treadDataFromBank [%d/%d]: %x", dram_bank_read_burst_counter, valueof(BURST_LENGTH), d);
         end
     endrule
 
@@ -132,6 +135,10 @@ module mkDRAM_Kernel(DRAM_Kernel_Ifc);
 
     method Bool data_response_ready;
         return dataOutQ.notEmpty();
+    endmethod
+
+    method Bool data_queue_full;
+        return !dataOutQ.notFull();
     endmethod
 
     method ActionValue#(Bit#(WORD_SIZE)) get_data_response;

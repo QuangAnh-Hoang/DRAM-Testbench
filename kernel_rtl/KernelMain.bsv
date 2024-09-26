@@ -66,7 +66,7 @@ module mkKernelMain(KernelMainIfc)
     Reg#(Bit#(32)) readReqInstOff <- mkReg(0);
 	Reg#(Bit#(32)) readInstCouter <- mkReg(0);
 
-    rule sendReadReqInst ( kernelStarted && remainInst > 0 );
+    rule sendReadReqInst ( !kernelDone && remainInst > 0 );
 		$display("\t\t[%d] sendReadReqInst : remainInst = %d", cycleCounter, remainInst);
 		let inst_per_mem_req = fromInteger(valueof(INST_PER_MEM_REQ));
 		let bytes_per_mem_req = fromInteger(valueof(HBM_DATAWIDTH)) >> 3;
@@ -75,13 +75,13 @@ module mkKernelMain(KernelMainIfc)
 			remainInst <= remainInst - inst_per_mem_req;
 			readReqQs[0].enq(MemPortReq{addr:zeroExtend(readReqInstOff), bytes:bytes_per_mem_req});
 			readReqInstOff <= readReqInstOff + bytes_per_mem_req;
-			readInstCouter <= inst_per_mem_req;
+			readInstCouter <= readInstCouter + inst_per_mem_req;
 		end else begin
 			let b = remainInst * 4;
 			readReqQs[0].enq(MemPortReq{addr:zeroExtend(readReqInstOff), bytes:b});
 			readReqInstOff <= readReqInstOff + b;
+			readInstCouter <= readInstCouter + remainInst;
 			remainInst <= 0;
-			readInstCouter <= remainInst;
 		end
 	endrule
 
@@ -89,30 +89,38 @@ module mkKernelMain(KernelMainIfc)
 	Reg#(Bit#(HBM_DATAWIDTH)) inst_serializerBuff <- mkReg(0);
 	FIFOF#(Bit#(DRAM_INST_WIDTH)) inst_compactedQ <- mkFIFOF();
 
-	rule recvReadRespInst ( kernelStarted );
-		$display("\t\t[%d] recvReadRespInst : inst_serializerCouter = %d", cycleCounter, inst_serializerCouter);
-
+	rule recvReadRespInst ( kernelStarted && (readInstCouter > 0));
 		if ( inst_serializerCouter == 0 ) begin
 			let d = readWordQs[0].first;
 			readWordQs[0].deq;
 			inst_compactedQ.enq(truncate(d));
 			inst_serializerBuff <= (d >> valueof(DRAM_INST_WIDTH));
-			inst_serializerCouter <= readInstCouter - 1;
+			inst_serializerCouter <= fromInteger(valueof(INST_PER_MEM_REQ)) - 1;
+			readInstCouter <= readInstCouter - 1;
+
+			$display("\t\t[%d] recvReadRespInst [%d / %d] - inst_compactedQ.enq(truncate(%x));", 
+				cycleCounter, inst_serializerCouter, readInstCouter, d
+			);
+
 		end else begin
 			inst_serializerCouter <= inst_serializerCouter - 1;
 			inst_serializerBuff <= (inst_serializerBuff >> valueof(DRAM_INST_WIDTH));
 			inst_compactedQ.enq(truncate(inst_serializerBuff));
+			readInstCouter <= readInstCouter - 1;
+
+			$display("\t\t[%d] recvReadRespInst [%d / %d] - inst_compactedQ.enq(truncate(%x));", 
+				cycleCounter, inst_serializerCouter, readInstCouter, inst_serializerBuff
+			);
+
 		end
 	endrule
 
-	rule enqueueInst ( kernelStarted );
-		if (inst_compactedQ.notEmpty()) begin
-			let d = inst_compactedQ.first;
-			inst_compactedQ.deq;
-			mem_kernel.put_mem_control(truncate(d));
+	rule enqueueInst ( !kernelDone && inst_compactedQ.notEmpty() );
+		let d = inst_compactedQ.first;
+		inst_compactedQ.deq;
+		mem_kernel.put_mem_control(truncate(d));
 
-			$display("\t\t[%d] enqueueInst : mem_kernel.put_mem_control(truncate(%x))", cycleCounter, d);
-		end
+		$display("\t\t[%d] enqueueInst : mem_kernel.put_mem_control(truncate(%x))", cycleCounter, d);
 	endrule
 
 	//////////////////////////////////////////////////////////////////////////
@@ -120,18 +128,21 @@ module mkKernelMain(KernelMainIfc)
     Reg#(Bit#(32)) readReqDataInOff <- mkReg(0);
 	Reg#(Bit#(32)) readDataCouter <- mkReg(0);
 
-    rule sendReadReqDataIn ( kernelStarted && readCounter > 0 );
-		$display("\t\t[%d] sendReadReqDataIn : readCounter = %d", cycleCounter, readCounter);
+    rule sendReadReqDataIn ( !kernelDone && (readCounter > 0) );
 		let word_per_mem_req = fromInteger(valueof(WORD_PER_MEM_REQ));
 		let bytes_per_mem_req = fromInteger(valueof(HBM_DATAWIDTH)) >> 3;
 
 		if ( readCounter > word_per_mem_req ) begin
+			$display("\t\t[%d] sendReadReqDataIn : readCounter = %d, readDataCouter = %d", cycleCounter, (readCounter - word_per_mem_req), (word_per_mem_req - 1));
+
 			readCounter <= readCounter - word_per_mem_req;
 			readReqQs[1].enq(MemPortReq{addr:zeroExtend(readReqDataInOff), bytes:bytes_per_mem_req});
 			readReqDataInOff <= readReqDataInOff + bytes_per_mem_req;
-			readDataCouter <= word_per_mem_req - 1;
+			readDataCouter <= word_per_mem_req;
 		end else begin 
-			let b = readCounter * 16;
+			$display("\t\t[%d] sendReadReqDataIn : readCounter = 0, readDataCouter = %d", cycleCounter, readCounter);
+
+			let b = readCounter * 2;
 			readReqQs[1].enq(MemPortReq{addr:zeroExtend(readReqDataInOff), bytes:b});
 			readReqDataInOff <= readReqDataInOff + b;
 			readCounter <= 0;
@@ -141,16 +152,15 @@ module mkKernelMain(KernelMainIfc)
 
 	Reg#(Bit#(32)) data_serializerCouter <- mkReg(0);
 	Reg#(Bit#(HBM_DATAWIDTH)) data_serializerBuff <- mkReg(0);
-	FIFOF#(Bit#(DRAM_INST_WIDTH)) data_compactedQ <- mkFIFOF();
+	FIFOF#(Bit#(DRAM_DATA_WIDTH)) data_compactedQ <- mkFIFOF();
 
 	rule recvReadRespDataIn ( kernelStarted );
-		$display("\t\t[%d] recvReadRespDataIn : data_serializerCouter = %d", cycleCounter, data_serializerCouter);
+		$display("\t\t[%d] recvReadRespDataIn [%d / %d] - data_serializerBuff = %x", cycleCounter, data_serializerCouter, readDataCouter, data_serializerBuff);
 
 		if ( data_serializerCouter == 0 ) begin
 			let d = readWordQs[1].first;
 			readWordQs[1].deq;
-			data_compactedQ.enq(truncate(d));
-			data_serializerBuff <= (d >> valueof(DRAM_DATA_WIDTH));
+			data_serializerBuff <= d;
 			data_serializerCouter <= readDataCouter;
 		end else begin
 			data_serializerCouter <= data_serializerCouter - 1;
@@ -159,14 +169,12 @@ module mkKernelMain(KernelMainIfc)
 		end
 	endrule
 
-	rule enqueueDataIn ( kernelStarted );
-		if (data_compactedQ.notEmpty()) begin
-			let d = data_compactedQ.first;
-			data_compactedQ.deq;
-			mem_kernel.put_mem_data(truncate(d));
+	rule enqueueDataIn ( !kernelDone && data_compactedQ.notEmpty() );
+		let d = data_compactedQ.first;
+		data_compactedQ.deq;
+		mem_kernel.put_mem_data(truncate(d));
 
-			$display("\t\t[%d] enqueueDataIn : mem_kernel.put_mem_data(truncate(%x))", cycleCounter, d);
-		end
+		$display("\t\t[%d] enqueueDataIn : mem_kernel.put_mem_data(truncate(%x))", cycleCounter, d);
 	endrule
 
 	//////////////////////////////////////////////////////////////////////////
@@ -175,7 +183,7 @@ module mkKernelMain(KernelMainIfc)
 	Reg#(Bit#(32)) writeReqOff <- mkReg(0);
 	Reg#(Bit#(32)) writeCnt <- mkReg(0);
 
-	rule writeback ( kernelStarted && (writeCounter > 0) && mem_kernel.data_response_ready());
+	rule writeback ( !kernelDone && (writeCounter > 0) && mem_kernel.data_response_ready);
 		// Bit#(MEM_PORT_DATA_WIDTH) bytes_per_mem_req = fromInteger(valueof(HBM_DATAWIDTH)) >> 3;
 		let d <- mem_kernel.get_data_response();
 
@@ -220,7 +228,12 @@ module mkKernelMain(KernelMainIfc)
 	//////////////////////////////////////////////////////////////////////////
 	rule checkKernelDone ( kernelStarted );
 		kernelDone <= ( (remainInst == 0) && (readCounter == 0) && (writeCounter == 0) );
-		$display("\t\t[%d] checkKernelDone : remainInst = %d, readCounter = %d, writeCounter = %d", cycleCounter, remainInst, readCounter, writeCounter);
+		$display("\t\t[%d] checkKernelDone : kernelDone = %d, remainInst = %d, readCounter = %d, writeCounter = %d", 
+			cycleCounter, kernelDone, remainInst, readCounter, writeCounter
+		);
+		// $display("\t\t[%d] checkKernelDone : kernel_dataQ_full = %d, kernel_dataQ_ready = %d", 
+		// 	cycleCounter, mem_kernel.data_queue_full, mem_kernel.data_response_ready
+		// );
 	endrule
 
 	Vector#(MemPortCnt, MemPortIfc) mem_;
@@ -249,7 +262,7 @@ module mkKernelMain(KernelMainIfc)
 		remainInst <= totalInst;
 		readCounter <= wordsToRead;
 		writeCounter <= wordsToWrite;
-		$display("\t[%d] Kernel started (%d, %d, %d)", cycleCounter, totalInst, wordsToRead, wordsToWrite);
+		$display("\t[0] Kernel started (%d, %d, %d)", totalInst, wordsToRead, wordsToWrite);
 	endmethod
 	method Bool started;
 		return kernelStarted;
