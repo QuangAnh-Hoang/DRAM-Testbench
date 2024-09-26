@@ -12,11 +12,11 @@
 #include "StreamInterface.h"
 
 #define CACHE_SIZE 256
-#define NUM_BANKS 16
+#define NUM_BANKS 4
 #define BURST_LENGTH 16
 
 #define ROW_ADDR_WIDTH  10
-#define COL_ADDR_WIDTH  4
+#define COL_ADDR_WIDTH  5
 #define BANK_ADDR_WIDTH 2
 
 #define ACT_CMD 0b00000

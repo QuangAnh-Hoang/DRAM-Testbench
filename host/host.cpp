@@ -11,7 +11,7 @@
 
 #include "MemoryController.h"
 
-#define ARRAY_LENGTH 64
+#define ARRAY_LENGTH 1024
 
 int main(int argc, char** argv) {
 	srand(time(NULL));
@@ -27,6 +27,11 @@ int main(int argc, char** argv) {
 	for ( int i = 0; i < ARRAY_LENGTH; i++ ) {
 		if ((i % BURST_LENGTH) == 0) {
 			memCtrl->write(i, &inArr[i], BURST_LENGTH);
+		}
+	}
+
+	for ( int i = 0; i < ARRAY_LENGTH; i++ ) {
+		if ((i % BURST_LENGTH) == 0) {
 			memCtrl->read(i);
 		}
 	}
@@ -35,14 +40,14 @@ int main(int argc, char** argv) {
 
 	for (int i = 0; i < ARRAY_LENGTH; i++) {
 		outArr[i] = memCtrl->getMemoryResp(i);
-		std::cout << "Recv " << i << " = " << outArr[i] << std::endl;		
+		// std::cout << "Recv " << i << " = " << outArr[i] << std::endl;		
 	}
 
 	std::cout << "Result array: [";
-	for ( int i = 0; i < ARRAY_LENGTH; i++ ) {
+	for ( int i = 0; i < ARRAY_LENGTH - 1; i++ ) {
 		std::cout << outArr[i] << ", ";
 	}
-	std::cout << "]" << std::endl;
+	std::cout << outArr[ARRAY_LENGTH-1] << "]" << std::endl;
 
     return 0;
 }

@@ -2,7 +2,6 @@
 
 #include <signal.h>
 
-
 StreamInterface*
 StreamInterface::m_pInstance = NULL;
 
@@ -143,12 +142,6 @@ StreamInterface::flush() {
 	);
 	fflush(stdout);
 
-	// m_instBufDev[m_curInQueue].write(m_instBufHost[m_curInQueue]);
-	// m_instBufDev[m_curInQueue].sync(XCL_BO_SYNC_BO_TO_DEVICE);
-
-	// m_dataInBufDev[m_curInQueue].write(m_dataInBufHost[m_curInQueue]);
-	// m_dataInBufDev[m_curInQueue].sync(XCL_BO_SYNC_BO_TO_DEVICE);
-
 	int inst_send_bytes = m_curInstByteOff;
 	int dataIn_send_bytes = m_curDataInByteOff;
 	int dataOut_send_bytes = m_bytesToRead[m_curInQueue];
@@ -162,13 +155,21 @@ StreamInterface::flush() {
 		b_dataIn.sync(XCL_BO_SYNC_BO_TO_DEVICE, dataIn_send_bytes, 0); 
 	});
 
-	// grun.start();
-	// grun.wait();
+	printf("Sending instructions: \n");
+	for (int i = 0; i < inst_send_bytes / 4; i++ ) {
+		printf( "\t%08x\n", ((uint32_t*)bh_inst)[i] );
+	}
+	printf("\n");
+
+	printf("Sending input data: \n");
+	for (int i = 0; i < dataIn_send_bytes / 2; i++ ) {
+		printf( "\t%04x\n", ((uint16_t*)bh_dataIn)[i] );
+	}
+	printf("\n");
 
 	printf( "Starting kernel\n" ); fflush(stdout);
 
 	xrt::queue::event start_kernel = m_asyncQueue[m_curInQueue].enqueue([ &grun ] {grun.start(); grun.wait(); });
-	start_kernel.wait();
 
 	// m_dataOutBufDev[m_curInQueue].sync(XCL_BO_SYNC_BO_FROM_DEVICE);
 	// m_dataOutBufDev[m_curInQueue].read(m_dataOutBufHost[m_curInQueue]);

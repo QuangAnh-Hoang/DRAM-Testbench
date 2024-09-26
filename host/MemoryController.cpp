@@ -16,7 +16,7 @@ void MemoryController::sendMemoryCommand() {
         uint16_t* data = std::get<1>(memCmdQueue.front());
         uint16_t size = std::get<2>(memCmdQueue.front());
 
-        printf("Sending command: %x\n", inst);
+        // printf("Sending command: %x\n", inst);
         ifc->send(&inst, data, size);
 
         memCmdQueue.pop_front();
@@ -54,17 +54,26 @@ void MemoryController::read(uint16_t addr) {
     // Check if available in cache
     if (cache.find(addr) != cache.end()) { return; }
 
-    uint16_t col_addr = addr & 0xf;
+    uint16_t col_addr = addr & 0x1f;
     uint16_t bank_addr = (addr >> (COL_ADDR_WIDTH)) & 0x3;
     uint16_t row_addr = addr >> (BANK_ADDR_WIDTH + COL_ADDR_WIDTH);
     
     if (currentActiveRow[bank_addr] != row_addr) {
+        if (currentActiveRow[bank_addr] != -1) {
+            uint32_t pre_cmd = row_addr | (bank_addr << ROW_ADDR_WIDTH) | (PRE_CMD << (ROW_ADDR_WIDTH + BANK_ADDR_WIDTH));
+            memCmdQueue.push_back({pre_cmd, nullptr, 0});
+            printf("\tPrecharge command: %x\n", pre_cmd);
+        }
+
         currentActiveRow[bank_addr] = row_addr;
-        uint32_t act_cmd = col_addr | (bank_addr << ROW_ADDR_WIDTH) | (ACT_CMD << (ROW_ADDR_WIDTH + BANK_ADDR_WIDTH));
+        uint32_t act_cmd = row_addr | (bank_addr << ROW_ADDR_WIDTH) | (ACT_CMD << (ROW_ADDR_WIDTH + BANK_ADDR_WIDTH));
         memCmdQueue.push_back({act_cmd, nullptr, 0});
+        printf("\tActivate command: %x\n", act_cmd);
     } 
     uint32_t read_cmd = col_addr | (bank_addr << ROW_ADDR_WIDTH) | (RD_CMD << (ROW_ADDR_WIDTH + BANK_ADDR_WIDTH));
     memCmdQueue.push_back({read_cmd, nullptr, 0});
+
+    printf("\tRead command: %x\n", read_cmd);
 
     readQueue.push_back(addr);
     sendMemoryCommand();
@@ -78,17 +87,23 @@ void MemoryController::write(uint16_t addr, uint16_t* write_data, uint16_t num_e
         }
     }
 
-    printf("\taddr = %x\t", addr);
+    // printf("\taddr = %x\t", addr);
 
-    uint16_t col_addr = addr & 0xf;
+    uint16_t col_addr = addr & 0x1f;
     uint16_t bank_addr = (addr >> (COL_ADDR_WIDTH)) & 0x3;
     uint16_t row_addr = addr >> (BANK_ADDR_WIDTH + COL_ADDR_WIDTH);
 
     printf("\tcol_addr = %x, bank_addr = %x, row_addr = %x\n", col_addr, bank_addr, row_addr);
 
     if (currentActiveRow[bank_addr] != row_addr) {
+        if (currentActiveRow[bank_addr] != -1) {
+            uint32_t pre_cmd = row_addr | (bank_addr << ROW_ADDR_WIDTH) | (PRE_CMD << (ROW_ADDR_WIDTH + BANK_ADDR_WIDTH));
+            memCmdQueue.push_back({pre_cmd, nullptr, 0});
+            printf("\tPrecharge command: %x\n", pre_cmd);
+        }
+
         currentActiveRow[bank_addr] = row_addr;
-        uint32_t act_cmd = col_addr | (bank_addr << ROW_ADDR_WIDTH) | (ACT_CMD << (ROW_ADDR_WIDTH + BANK_ADDR_WIDTH));
+        uint32_t act_cmd = row_addr | (bank_addr << ROW_ADDR_WIDTH) | (ACT_CMD << (ROW_ADDR_WIDTH + BANK_ADDR_WIDTH));
         memCmdQueue.push_back({act_cmd, nullptr, 0});
         printf("\tActivate command: %x\n", act_cmd);
     } 
